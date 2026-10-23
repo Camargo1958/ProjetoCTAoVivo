@@ -1,0 +1,175 @@
+{
+ "state_version": 3,
+ "cli_version": "1.22.1",
+ "lineage": "ece7117e-a89d-45eb-bfaf-a690a3a97463",
+ "serial": 6,
+ "state": {
+  "resources.dashboards.dashboard_portfolio": {
+   "__id__": "01f1cf21af6817b387276ffde5f6c188",
+   "state": {
+    "dataset_catalog": "lakehouse_vertice",
+    "dataset_schema": "gold",
+    "display_name": "Projeto Farol · Portfólio",
+    "embed_credentials": false,
+    "etag": "12323108359",
+    "parent_path": "/Workspace/Users/aldrovcamargo@gmail.com/.bundle/verticeaovivo/dev/resources",
+    "published": true,
+    "serialized_dashboard": "sha256:a3b5f11b2815cbeeaf35858814131e062b9672b8c6d86ead7f41e1d02600f85b",
+    "warehouse_id": "810afaae3be2f88c"
+   }
+  },
+  "resources.jobs.vertice_farol": {
+   "__id__": "891653377673968",
+   "state": {
+    "deployment": {
+     "kind": "BUNDLE",
+     "metadata_file_path": "/Workspace/Users/aldrovcamargo@gmail.com/.bundle/verticeaovivo/dev/state/metadata.json"
+    },
+    "edit_mode": "UI_LOCKED",
+    "email_notifications": {
+     "no_alert_for_skipped_runs": false
+    },
+    "format": "MULTI_TASK",
+    "max_concurrent_runs": 1,
+    "name": "vertice_farol",
+    "performance_target": "PERFORMANCE_OPTIMIZED",
+    "queue": {
+     "enabled": true
+    },
+    "schedule": {
+     "pause_status": "PAUSED",
+     "quartz_cron_expression": "10 0 6 ? * MON",
+     "timezone_id": "America/Sao_Paulo"
+    },
+    "tasks": [
+     {
+      "depends_on": [
+       {
+        "task_key": "ingestao_feriados"
+       },
+       {
+        "task_key": "ingestao_data_lake"
+       }
+      ],
+      "sql_task": {
+       "file": {
+        "path": "/Workspace/Users/aldrovcamargo@gmail.com/.bundle/verticeaovivo/dev/files/src/conferencia/00-conferencia-bronze.sql",
+        "source": "WORKSPACE"
+       },
+       "warehouse_id": "810afaae3be2f88c"
+      },
+      "task_key": "conferencia_bronze"
+     },
+     {
+      "disabled": false,
+      "email_notifications": {},
+      "notebook_task": {
+       "base_parameters": {
+        "AWS_ACCESS_KEY_ID": "b54f68e9f7ecf964a67eaf3eae21002b",
+        "AWS_DEFAULT_REGION": "us-east-1",
+        "AWS_SECRET_ACCESS_KEY": "38fb8dbe7f2b2daef5d7acbc3085c91b224e90b442cd57adccee8c67676ffc76",
+        "S3_ENDPOINT": "https://shiivuzdswormlzgitkl.storage.supabase.co/storage/v1/s3"
+       },
+       "notebook_path": "/Workspace/Users/aldrovcamargo@gmail.com/.bundle/verticeaovivo/dev/files/src/ingestao/02_ingestao_boto3_gabarito",
+       "source": "WORKSPACE"
+      },
+      "run_if": "ALL_SUCCESS",
+      "task_key": "ingestao_data_lake",
+      "timeout_seconds": 0,
+      "webhook_notifications": {}
+     },
+     {
+      "disabled": false,
+      "email_notifications": {},
+      "notebook_task": {
+       "notebook_path": "/Workspace/Users/aldrovcamargo@gmail.com/.bundle/verticeaovivo/dev/files/src/ingestao/01_ingestao_api_gabarito",
+       "source": "WORKSPACE"
+      },
+      "run_if": "ALL_SUCCESS",
+      "task_key": "ingestao_feriados",
+      "timeout_seconds": 0,
+      "webhook_notifications": {}
+     },
+     {
+      "depends_on": [
+       {
+        "task_key": "conferencia_bronze"
+       }
+      ],
+      "pipeline_task": {
+       "pipeline_id": "4ca07763-6529-41ce-9216-52ec96776215"
+      },
+      "task_key": "medalhao"
+     },
+     {
+      "depends_on": [
+       {
+        "task_key": "medalhao"
+       }
+      ],
+      "sql_task": {
+       "file": {
+        "path": "/Workspace/Users/aldrovcamargo@gmail.com/.bundle/verticeaovivo/dev/files/src/ia/status_estruturado.sql",
+        "source": "WORKSPACE"
+       },
+       "warehouse_id": "810afaae3be2f88c"
+      },
+      "task_key": "status_com_ia"
+     },
+     {
+      "depends_on": [
+       {
+        "task_key": "medalhao"
+       }
+      ],
+      "sql_task": {
+       "file": {
+        "path": "/Workspace/Users/aldrovcamargo@gmail.com/.bundle/verticeaovivo/dev/files/src/testes/testes.sql",
+        "source": "WORKSPACE"
+       },
+       "warehouse_id": "810afaae3be2f88c"
+      },
+      "task_key": "testes_de_qualidade"
+     }
+    ],
+    "timeout_seconds": 0,
+    "webhook_notifications": {}
+   },
+   "depends_on": [
+    {
+     "node": "resources.pipelines.vertice_medalhao",
+     "label": "${resources.pipelines.vertice_medalhao.id}"
+    }
+   ]
+  },
+  "resources.pipelines.vertice_medalhao": {
+   "__id__": "4ca07763-6529-41ce-9216-52ec96776215",
+   "state": {
+    "catalog": "lakehouse_vertice",
+    "channel": "CURRENT",
+    "continuous": false,
+    "deployment": {
+     "kind": "BUNDLE",
+     "metadata_file_path": "/Workspace/Users/aldrovcamargo@gmail.com/.bundle/verticeaovivo/dev/state/metadata.json"
+    },
+    "edition": "ADVANCED",
+    "libraries": [
+     {
+      "glob": {
+       "include": "/Workspace/Users/aldrovcamargo@gmail.com/.bundle/verticeaovivo/dev/files/src/silver/**"
+      }
+     },
+     {
+      "glob": {
+       "include": "/Workspace/Users/aldrovcamargo@gmail.com/.bundle/verticeaovivo/dev/files/src/gold/**"
+      }
+     }
+    ],
+    "name": "vertice_medalhao",
+    "photon": true,
+    "serverless": true,
+    "target": "silver"
+   }
+  }
+ }
+}

@@ -1,0 +1,37 @@
+# This is a Declarative Automation Bundle definition for verticeaovivo.
+# See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
+bundle:
+  name: verticeaovivo
+  uuid: eac9e240-a789-4c92-9664-215515c8b3d8
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Catalogo Unity Catalog que contem as camadas bronze, silver e gold
+    default: lakehouse_vertice
+  warehouse_id:
+    description: SQL warehouse usado pela tarefa de conferencia da bronze
+    default: 810afaae3be2f88c
+  s3_access_key_id:
+    description: Chave de acesso ao data lake; o valor fica fora do Git
+  s3_secret_access_key:
+    description: Chave secreta do data lake; o valor fica fora do Git
+
+targets:
+  dev:
+    default: true
+    presets:
+      trigger_pause_status: PAUSED
+    workspace:
+      host: https://dbc-2e8c702d-0ecb.cloud.databricks.com
+  prod:
+    mode: production
+    workspace:
+      host: https://dbc-2e8c702d-0ecb.cloud.databricks.com
+      # We explicitly deploy to /Workspace/Users/aldrovcamargo@gmail.com to make sure we only have a single copy.
+      root_path: /Workspace/Users/aldrovcamargo@gmail.com/.bundle/${bundle.name}/${bundle.target}
+    permissions:
+      - user_name: aldrovcamargo@gmail.com
+        level: CAN_MANAGE

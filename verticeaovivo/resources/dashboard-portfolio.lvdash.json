@@ -1,0 +1,1379 @@
+{
+  "datasets": [
+    {
+      "name": "portfolio_kpis",
+      "displayName": "Indicadores da carteira",
+      "queryLines": [
+        "SELECT COUNT(*) AS projetos_em_andamento, SUM(valor_contrato) AS carteira, ",
+        "TRY_DIVIDE(SUM(ev), SUM(pv)) AS spi, TRY_DIVIDE(SUM(ev), SUM(ac)) AS cpi, ",
+        "SUM(estouro_previsto) AS estouro_previsto, ",
+        "SUM(CASE WHEN situacao IN ('atenção', 'crítico') THEN 1 ELSE 0 END) AS projetos_em_risco, ",
+        "SUM(CASE WHEN situacao = 'crítico' THEN 1 ELSE 0 END) AS criticos, ",
+        "SUM(CASE WHEN melancia THEN 1 ELSE 0 END) AS melancias ",
+        "FROM projeto_situacao_atual WHERE status = 'em_andamento' "
+      ]
+    },
+    {
+      "name": "portfolio_projetos",
+      "displayName": "Projetos em andamento",
+      "queryLines": [
+        "SELECT projeto, nome, cliente, gerente_projeto, valor_contrato, pv, ev, ac, ",
+        "spi, cpi, eac, estouro_previsto, situacao, farol_do_gerente, farol_calculado, melancia ",
+        "FROM projeto_situacao_atual WHERE status = 'em_andamento' ",
+        "ORDER BY estouro_previsto DESC, nome "
+      ]
+    },
+    {
+      "name": "portfolio_estouro",
+      "displayName": "Maiores estouros previstos",
+      "queryLines": [
+        "SELECT projeto, nome, estouro_previsto, situacao ",
+        "FROM projeto_situacao_atual WHERE status = 'em_andamento' ",
+        "ORDER BY estouro_previsto DESC LIMIT 10 "
+      ]
+    },
+    {
+      "name": "portfolio_semanal",
+      "displayName": "Tendência semanal da carteira",
+      "queryLines": [
+        "SELECT semana, TRY_DIVIDE(SUM(ev), SUM(pv)) AS spi, ",
+        "TRY_DIVIDE(SUM(ev), SUM(ac)) AS cpi ",
+        "FROM fato_projeto_semana WHERE semana >= DATE'2025-03-07' ",
+        "GROUP BY semana ORDER BY semana "
+      ]
+    },
+    {
+      "name": "pessoas_top15",
+      "displayName": "Custo de horas ociosas por pessoa",
+      "queryLines": [
+        "SELECT nome, SUM(custo_ocioso) AS custo_ocioso, ",
+        "SUM(horas_ociosas) AS horas_ociosas ",
+        "FROM utilizacao_pessoa_semana WHERE semana > DATE'2026-07-24' ",
+        "GROUP BY nome ORDER BY custo_ocioso DESC LIMIT 15 "
+      ]
+    },
+    {
+      "name": "pessoas_projeto",
+      "displayName": "Utilização por pessoa e projeto",
+      "queryLines": [
+        "SELECT nome, projeto_id, SUM(horas_ociosas) AS horas_ociosas, ",
+        "SUM(horas_disponiveis) AS horas_disponiveis, ",
+        "SUM(horas_apontadas) AS horas_apontadas, ",
+        "TRY_DIVIDE(SUM(horas_apontadas), SUM(horas_disponiveis)) AS utilizacao, ",
+        "SUM(custo_ocioso) AS custo_ocioso ",
+        "FROM utilizacao_pessoa_semana WHERE semana > DATE'2026-07-24' ",
+        "GROUP BY nome, projeto_id ",
+        "ORDER BY utilizacao ASC, horas_ociosas DESC, nome, projeto_id "
+      ]
+    },
+    {
+      "name": "pessoas_bloqueios",
+      "displayName": "Causas de bloqueio por projeto",
+      "queryLines": [
+        "WITH janela AS (\n",
+        "  SELECT projeto_id, causa_bloqueio, COUNT(*) AS ocorrencias ",
+        "  FROM status_estruturado ",
+        "  WHERE data_status >= DATE_SUB((SELECT MAX(data_status) FROM status_estruturado), 89) ",
+        "    AND causa_bloqueio NOT IN ('sem_bloqueio', 'nao_reportado') ",
+        "  GROUP BY projeto_id, causa_bloqueio\n",
+        "), projetos_prioritarios AS (\n",
+        "  SELECT projeto_id, SUM(ocorrencias) AS total ",
+        "  FROM janela GROUP BY projeto_id ORDER BY total DESC, projeto_id LIMIT 10\n",
+        ") ",
+        "SELECT j.projeto_id, j.causa_bloqueio, j.ocorrencias ",
+        "FROM janela j INNER JOIN projetos_prioritarios p ON p.projeto_id = j.projeto_id ",
+        "ORDER BY p.total DESC, j.projeto_id, j.ocorrencias DESC "
+      ]
+    },
+    {
+      "name": "fornecedores_resumo",
+      "displayName": "Desempenho por fornecedor",
+      "queryLines": [
+        "SELECT fornecedor, CONCAT_WS(', ', SORT_ARRAY(COLLECT_SET(fornecedor_como_veio))) AS grafias_cadastro, ",
+        "COUNT(*) AS entregas, ",
+        "TRY_DIVIDE(SUM(CASE WHEN data_entrega IS NOT NULL THEN prazo_real_dias END), ",
+        "SUM(CASE WHEN data_entrega IS NOT NULL THEN prazo_prometido_dias END)) AS razao_prazo_real_prometido, ",
+        "TRY_DIVIDE(SUM(CASE WHEN data_entrega IS NOT NULL AND data_entrega <= data_prometida THEN 1 ELSE 0 END), ",
+        "SUM(CASE WHEN data_entrega IS NOT NULL THEN 1 ELSE 0 END)) AS percentual_no_prazo, ",
+        "SUM(CASE WHEN em_aberto AND data_prometida < DATE'2026-10-16' THEN 1 ELSE 0 END) AS em_atraso_hoje ",
+        "FROM lakehouse_vertice.silver.entregas_fornecedor ",
+        "GROUP BY fornecedor ORDER BY em_atraso_hoje DESC, entregas DESC, fornecedor "
+      ]
+    },
+    {
+      "name": "fornecedores_atrasos",
+      "displayName": "Entregas em atraso no corte atual",
+      "queryLines": [
+        "SELECT entrega_id, fornecedor, fornecedor_como_veio, projeto_id, item, ",
+        "data_prometida, dias_de_atraso_na_entrega, valor ",
+        "FROM lakehouse_vertice.silver.entregas_fornecedor ",
+        "WHERE em_aberto AND data_prometida < DATE'2026-10-16' ",
+        "ORDER BY dias_de_atraso_na_entrega DESC, fornecedor, entrega_id "
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "portfolio",
+      "displayName": "Portfólio",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "portfolio-pergunta",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Portfólio\\n",
+                "\\n",
+                "**Estamos entregando os projetos dentro do prazo e do orçamento?**"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi-carteira",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "portfolio_kpis",
+                  "fields": [
+                    {
+                      "name": "carteira",
+                      "expression": "`carteira`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "carteira",
+                  "displayName": "Valor contratado",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "BRL",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Carteira em andamento"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi-spi",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "portfolio_kpis",
+                  "fields": [
+                    {
+                      "name": "spi",
+                      "expression": "`spi`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "spi",
+                  "displayName": "SPI",
+                  "format": {
+                    "type": "number-plain",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 2
+                    },
+                    "suffix": "x"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "SPI da carteira"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi-cpi",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "portfolio_kpis",
+                  "fields": [
+                    {
+                      "name": "cpi",
+                      "expression": "`cpi`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "cpi",
+                  "displayName": "CPI",
+                  "format": {
+                    "type": "number-plain",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 2
+                    },
+                    "suffix": "x"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "CPI da carteira"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi-estouro",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "portfolio_kpis",
+                  "fields": [
+                    {
+                      "name": "estouro_previsto",
+                      "expression": "`estouro_previsto`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "estouro_previsto",
+                  "displayName": "Estouro",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "BRL",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Estouro previsto"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi-risco",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "portfolio_kpis",
+                  "fields": [
+                    {
+                      "name": "projetos_em_risco",
+                      "expression": "`projetos_em_risco`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "projetos_em_risco",
+                  "displayName": "Projetos",
+                  "format": {
+                    "type": "number",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Projetos em risco"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi-criticos",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "portfolio_kpis",
+                  "fields": [
+                    {
+                      "name": "criticos",
+                      "expression": "`criticos`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "criticos",
+                  "displayName": "Projetos",
+                  "format": {
+                    "type": "number",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Projetos críticos"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 5,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi-melancias",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "portfolio_kpis",
+                  "fields": [
+                    {
+                      "name": "melancias",
+                      "expression": "`melancias`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "melancias",
+                  "displayName": "Projetos",
+                  "format": {
+                    "type": "number",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Projetos melancia"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 5,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "estouro-por-projeto",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "portfolio_estouro",
+                  "fields": [
+                    {
+                      "name": "estouro_previsto",
+                      "expression": "`estouro_previsto`"
+                    },
+                    {
+                      "name": "nome",
+                      "expression": "`nome`"
+                    },
+                    {
+                      "name": "situacao",
+                      "expression": "`situacao`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "mark": {
+                "layout": "group"
+              },
+              "encodings": {
+                "x": {
+                  "fieldName": "estouro_previsto",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Estouro previsto (R$)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "BRL",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "nome",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "color": {
+                  "fieldName": "situacao",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "crítico",
+                        "color": "#FF5F46"
+                      },
+                      {
+                        "value": "atenção",
+                        "color": "#F6C344"
+                      },
+                      {
+                        "value": "ok",
+                        "color": "#22C2F4"
+                      }
+                    ]
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Top 10 — estouro previsto por projeto"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "dispersao-spi-cpi",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "portfolio_projetos",
+                  "fields": [
+                    {
+                      "name": "projeto",
+                      "expression": "`projeto`"
+                    },
+                    {
+                      "name": "spi",
+                      "expression": "`spi`"
+                    },
+                    {
+                      "name": "cpi",
+                      "expression": "`cpi`"
+                    },
+                    {
+                      "name": "situacao",
+                      "expression": "`situacao`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "scatter",
+              "encodings": {
+                "x": {
+                  "fieldName": "spi",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "SPI"
+                },
+                "y": {
+                  "fieldName": "cpi",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "CPI"
+                },
+                "color": {
+                  "fieldName": "situacao",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "crítico",
+                        "color": "#FF5F46"
+                      },
+                      {
+                        "value": "atenção",
+                        "color": "#F6C344"
+                      },
+                      {
+                        "value": "ok",
+                        "color": "#22C2F4"
+                      }
+                    ]
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "SPI × CPI por projeto"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 8,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "tendencia-spi-cpi",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "portfolio_semanal",
+                  "fields": [
+                    {
+                      "name": "semana",
+                      "expression": "`semana`"
+                    },
+                    {
+                      "name": "spi",
+                      "expression": "`spi`"
+                    },
+                    {
+                      "name": "cpi",
+                      "expression": "`cpi`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "semana",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "Semana"
+                },
+                "y": {
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "fields": [
+                    {
+                      "fieldName": "spi",
+                      "displayName": "SPI"
+                    },
+                    {
+                      "fieldName": "cpi",
+                      "displayName": "CPI"
+                    }
+                  ]
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "SPI e CPI semanais da carteira"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "projetos-em-andamento",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "portfolio_projetos",
+                  "fields": [
+                    {
+                      "name": "projeto",
+                      "expression": "`projeto`"
+                    },
+                    {
+                      "name": "nome",
+                      "expression": "`nome`"
+                    },
+                    {
+                      "name": "gerente_projeto",
+                      "expression": "`gerente_projeto`"
+                    },
+                    {
+                      "name": "situacao",
+                      "expression": "`situacao`"
+                    },
+                    {
+                      "name": "farol_do_gerente",
+                      "expression": "`farol_do_gerente`"
+                    },
+                    {
+                      "name": "farol_calculado",
+                      "expression": "`farol_calculado`"
+                    },
+                    {
+                      "name": "melancia",
+                      "expression": "`melancia`"
+                    },
+                    {
+                      "name": "spi",
+                      "expression": "`spi`"
+                    },
+                    {
+                      "name": "cpi",
+                      "expression": "`cpi`"
+                    },
+                    {
+                      "name": "estouro_previsto",
+                      "expression": "`estouro_previsto`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "projeto",
+                    "displayName": "Projeto"
+                  },
+                  {
+                    "fieldName": "nome",
+                    "displayName": "Nome"
+                  },
+                  {
+                    "fieldName": "gerente_projeto",
+                    "displayName": "Gerente"
+                  },
+                  {
+                    "fieldName": "situacao",
+                    "displayName": "Situação"
+                  },
+                  {
+                    "fieldName": "farol_do_gerente",
+                    "displayName": "Farol gerente"
+                  },
+                  {
+                    "fieldName": "farol_calculado",
+                    "displayName": "Farol calculado"
+                  },
+                  {
+                    "fieldName": "melancia",
+                    "displayName": "Melancia"
+                  },
+                  {
+                    "fieldName": "spi",
+                    "displayName": "SPI",
+                    "format": {
+                      "type": "number-plain",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "cpi",
+                    "displayName": "CPI",
+                    "format": {
+                      "type": "number-plain",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "estouro_previsto",
+                    "displayName": "Estouro previsto",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "BRL",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    }
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Projetos em andamento e faróis"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 20,
+            "width": 12,
+            "height": 7
+          }
+        }
+      ]
+    },
+    {
+      "name": "pessoas",
+      "displayName": "Pessoas",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "pessoas-pergunta",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Pessoas\\n",
+                "\\n",
+                "**Onde a capacidade da equipe está ociosa e quais bloqueios precisam de decisão?**"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "top-pessoas-ociosas",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "pessoas_top15",
+                  "fields": [
+                    {
+                      "name": "nome",
+                      "expression": "`nome`"
+                    },
+                    {
+                      "name": "custo_ocioso",
+                      "expression": "`custo_ocioso`"
+                    },
+                    {
+                      "name": "horas_ociosas",
+                      "expression": "`horas_ociosas`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "nome",
+                    "displayName": "Pessoa"
+                  },
+                  {
+                    "fieldName": "custo_ocioso",
+                    "displayName": "Custo ocioso (R$)",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "BRL",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "horas_ociosas",
+                    "displayName": "Horas ociosas"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Top 15 — custo de horas ociosas"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "utilizacao-pessoa-projeto",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "pessoas_projeto",
+                  "fields": [
+                    {
+                      "name": "nome",
+                      "expression": "`nome`"
+                    },
+                    {
+                      "name": "projeto_id",
+                      "expression": "`projeto_id`"
+                    },
+                    {
+                      "name": "horas_ociosas",
+                      "expression": "`horas_ociosas`"
+                    },
+                    {
+                      "name": "horas_disponiveis",
+                      "expression": "`horas_disponiveis`"
+                    },
+                    {
+                      "name": "horas_apontadas",
+                      "expression": "`horas_apontadas`"
+                    },
+                    {
+                      "name": "utilizacao",
+                      "expression": "`utilizacao`"
+                    },
+                    {
+                      "name": "custo_ocioso",
+                      "expression": "`custo_ocioso`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "nome",
+                    "displayName": "Pessoa"
+                  },
+                  {
+                    "fieldName": "projeto_id",
+                    "displayName": "Projeto"
+                  },
+                  {
+                    "fieldName": "horas_ociosas",
+                    "displayName": "Horas ociosas"
+                  },
+                  {
+                    "fieldName": "horas_disponiveis",
+                    "displayName": "Horas disponíveis"
+                  },
+                  {
+                    "fieldName": "horas_apontadas",
+                    "displayName": "Horas apontadas"
+                  },
+                  {
+                    "fieldName": "utilizacao",
+                    "displayName": "Utilização",
+                    "format": {
+                      "type": "number-percent",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "custo_ocioso",
+                    "displayName": "Custo ocioso (R$)",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "BRL",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    }
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Utilização por pessoa e projeto — da mais ociosa à mais ocupada"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "causas-bloqueio-projeto",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "pessoas_bloqueios",
+                  "fields": [
+                    {
+                      "name": "projeto_id",
+                      "expression": "`projeto_id`"
+                    },
+                    {
+                      "name": "ocorrencias",
+                      "expression": "`ocorrencias`"
+                    },
+                    {
+                      "name": "causa_bloqueio",
+                      "expression": "`causa_bloqueio`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "projeto_id",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Projeto"
+                },
+                "y": {
+                  "fieldName": "ocorrencias",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Ocorrências"
+                },
+                "color": {
+                  "fieldName": "causa_bloqueio",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Causas de bloqueio — Top 10 projetos, últimos 90 dias"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 9,
+            "width": 12,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "fornecedores",
+      "displayName": "Fornecedores",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "fornecedores-pergunta",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Fornecedores\\n",
+                "\\n",
+                "**Quais fornecedores entregam no prazo e quais entregas estão atrasadas?**"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "desempenho-fornecedores",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "fornecedores_resumo",
+                  "fields": [
+                    {
+                      "name": "fornecedor",
+                      "expression": "`fornecedor`"
+                    },
+                    {
+                      "name": "grafias_cadastro",
+                      "expression": "`grafias_cadastro`"
+                    },
+                    {
+                      "name": "entregas",
+                      "expression": "`entregas`"
+                    },
+                    {
+                      "name": "razao_prazo_real_prometido",
+                      "expression": "`razao_prazo_real_prometido`"
+                    },
+                    {
+                      "name": "percentual_no_prazo",
+                      "expression": "`percentual_no_prazo`"
+                    },
+                    {
+                      "name": "em_atraso_hoje",
+                      "expression": "`em_atraso_hoje`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "fornecedor",
+                    "displayName": "Fornecedor normalizado"
+                  },
+                  {
+                    "fieldName": "grafias_cadastro",
+                    "displayName": "Grafias no cadastro"
+                  },
+                  {
+                    "fieldName": "entregas",
+                    "displayName": "Entregas"
+                  },
+                  {
+                    "fieldName": "razao_prazo_real_prometido",
+                    "displayName": "Prazo real ÷ prometido",
+                    "format": {
+                      "type": "number-plain",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      },
+                      "suffix": "x"
+                    }
+                  },
+                  {
+                    "fieldName": "percentual_no_prazo",
+                    "displayName": "% no prazo",
+                    "format": {
+                      "type": "number-percent",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "em_atraso_hoje",
+                    "displayName": "Em atraso no corte"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Desempenho consolidado por fornecedor"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 12,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "entregas-atrasadas",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "fornecedores_atrasos",
+                  "fields": [
+                    {
+                      "name": "entrega_id",
+                      "expression": "`entrega_id`"
+                    },
+                    {
+                      "name": "fornecedor",
+                      "expression": "`fornecedor`"
+                    },
+                    {
+                      "name": "fornecedor_como_veio",
+                      "expression": "`fornecedor_como_veio`"
+                    },
+                    {
+                      "name": "projeto_id",
+                      "expression": "`projeto_id`"
+                    },
+                    {
+                      "name": "item",
+                      "expression": "`item`"
+                    },
+                    {
+                      "name": "data_prometida",
+                      "expression": "`data_prometida`"
+                    },
+                    {
+                      "name": "dias_de_atraso_na_entrega",
+                      "expression": "`dias_de_atraso_na_entrega`"
+                    },
+                    {
+                      "name": "valor",
+                      "expression": "`valor`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "entrega_id",
+                    "displayName": "Entrega"
+                  },
+                  {
+                    "fieldName": "fornecedor",
+                    "displayName": "Fornecedor"
+                  },
+                  {
+                    "fieldName": "fornecedor_como_veio",
+                    "displayName": "Grafia original"
+                  },
+                  {
+                    "fieldName": "projeto_id",
+                    "displayName": "Projeto"
+                  },
+                  {
+                    "fieldName": "item",
+                    "displayName": "Item"
+                  },
+                  {
+                    "fieldName": "data_prometida",
+                    "displayName": "Data prometida"
+                  },
+                  {
+                    "fieldName": "dias_de_atraso_na_entrega",
+                    "displayName": "Dias em atraso"
+                  },
+                  {
+                    "fieldName": "valor",
+                    "displayName": "Valor (R$)",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "BRL",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    }
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Entregas em aberto atrasadas no corte de 16/10/2026"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 9,
+            "width": 12,
+            "height": 7
+          }
+        }
+      ]
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {
+        "light": "#F7F9FC",
+        "dark": "#14141A"
+      },
+      "widgetBackgroundColor": {
+        "light": "#FFFFFF",
+        "dark": "#1E1E27"
+      },
+      "widgetBorderColor": {
+        "light": "#FFFFFF",
+        "dark": "#1E1E27"
+      },
+      "fontColor": {
+        "light": "#172033",
+        "dark": "#F2F5FA"
+      },
+      "selectionColor": {
+        "light": "#0059DB",
+        "dark": "#22C2F4"
+      },
+      "visualizationColors": [
+        "#0059DB",
+        "#22C2F4",
+        "#FF5F46",
+        "#F6C344",
+        "#26A269",
+        "#8C6EE8",
+        "#62718A"
+      ],
+      "widgetHeaderAlignment": "LEFT"
+    }
+  }
+}
