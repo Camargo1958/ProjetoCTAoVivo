@@ -2,7 +2,7 @@
  "state_version": 3,
  "cli_version": "1.22.1",
  "lineage": "ece7117e-a89d-45eb-bfaf-a690a3a97463",
- "serial": 6,
+ "serial": 8,
  "state": {
   "resources.dashboards.dashboard_portfolio": {
    "__id__": "01f1cf21af6817b387276ffde5f6c188",
@@ -15,6 +15,15 @@
     "parent_path": "/Workspace/Users/aldrovcamargo@gmail.com/.bundle/verticeaovivo/dev/resources",
     "published": true,
     "serialized_dashboard": "sha256:a3b5f11b2815cbeeaf35858814131e062b9672b8c6d86ead7f41e1d02600f85b",
+    "warehouse_id": "810afaae3be2f88c"
+   }
+  },
+  "resources.genie_spaces.genie_farol": {
+   "__id__": "01f1cfd217db1778b88c75198cf485dc",
+   "state": {
+    "etag": "48efe38036efd872356aed5bef4814f726a371c6a3bd9a04f4139cb5c1805b8c",
+    "parent_path": "/Workspace/Users/aldrovcamargo@gmail.com/.bundle/verticeaovivo/dev/resources",
+    "serialized_space": "sha256:92aea8ba3300049578f3e97d5e249f1e65a9d0639f2feb7b1ab0063110c2d6e2",
     "warehouse_id": "810afaae3be2f88c"
    }
   },
@@ -100,6 +109,24 @@
        "pipeline_id": "4ca07763-6529-41ce-9216-52ec96776215"
       },
       "task_key": "medalhao"
+     },
+     {
+      "depends_on": [
+       {
+        "task_key": "testes_de_qualidade"
+       },
+       {
+        "task_key": "status_com_ia"
+       }
+      ],
+      "sql_task": {
+       "file": {
+        "path": "/Workspace/Users/aldrovcamargo@gmail.com/.bundle/verticeaovivo/dev/files/src/metricas/metricas.sql",
+        "source": "WORKSPACE"
+       },
+       "warehouse_id": "810afaae3be2f88c"
+      },
+      "task_key": "metricas_governadas"
      },
      {
       "depends_on": [

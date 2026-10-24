@@ -62,6 +62,15 @@ resources:
               path: ../src/ia/status_estruturado.sql
               source: WORKSPACE
             warehouse_id: ${var.warehouse_id}
+        - task_key: metricas_governadas
+          depends_on:
+            - task_key: testes_de_qualidade
+            - task_key: status_com_ia
+          sql_task:
+            file:
+              path: ../src/metricas/metricas.sql
+              source: WORKSPACE
+            warehouse_id: ${var.warehouse_id}
       email_notifications:
         no_alert_for_skipped_runs: false
       max_concurrent_runs: 1

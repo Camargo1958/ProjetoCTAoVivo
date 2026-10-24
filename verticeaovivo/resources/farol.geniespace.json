@@ -1,0 +1,253 @@
+{
+  "version": 2,
+  "data_sources": {
+    "tables": [
+      {
+        "identifier": "lakehouse_vertice.gold.fato_projeto_semana",
+        "column_configs": [
+          {
+            "column_name": "ac",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "cpi",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "eac",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "ev",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "projeto",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "pv",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "semana",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "spi",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "valor_contrato",
+            "enable_format_assistance": true
+          }
+        ]
+      },
+      {
+        "identifier": "lakehouse_vertice.gold.mv_projetos",
+        "column_configs": [
+          {
+            "column_name": "cliente",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "cpi",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "eac",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "estouro_previsto",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "margem_projetada",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "projeto",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "segmento",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "spi",
+            "enable_format_assistance": true
+          }
+        ]
+      },
+      {
+        "identifier": "lakehouse_vertice.gold.projeto_situacao_atual",
+        "column_configs": [
+          {
+            "column_name": "atraso_projetado_dias",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "cliente",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "cpi",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "eac",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "estouro_previsto",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "farol_calculado",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "farol_do_gerente",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "ferramenta",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "gerente_projeto",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "margem_projetada",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "melancia",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "nome",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "projeto",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "segmento",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "situacao",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "spi",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "status",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "valor_contrato",
+            "enable_format_assistance": true
+          }
+        ]
+      },
+      {
+        "identifier": "lakehouse_vertice.gold.status_estruturado",
+        "column_configs": [
+          {
+            "column_name": "bloqueio",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "causa",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "data_status",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "dias_impacto",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "farol",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "projeto",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "status_vazio",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "texto_status",
+            "enable_format_assistance": true
+          }
+        ]
+      },
+      {
+        "identifier": "lakehouse_vertice.gold.utilizacao_pessoa_semana",
+        "column_configs": [
+          {
+            "column_name": "colaborador_id",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "horas_apontadas",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "horas_disponiveis",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "percentual_utilizacao",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "projeto",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "semana_inicio",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "semanas_12",
+            "enable_format_assistance": true
+          }
+        ]
+      },
+      {
+        "identifier": "lakehouse_vertice.silver.entregas_fornecedor",
+        "column_configs": [
+          {
+            "column_name": "entrega_em_atraso",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "fornecedor",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "prazo_prometido",
+            "enable_format_assistance": true
+          },
+          {
+            "column_name": "prazo_real",
+            "enable_format_assistance": true
+          }
+        ]
+      }
+    ]
+  }
+}
